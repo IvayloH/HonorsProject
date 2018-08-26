@@ -1,0 +1,278 @@
+>>>>>Build 1<<<<<
+>>CORE
+-Basic algorithm - no collisions/actual paths...
+-'RoomConnector' class that is used as a representation of the physical exits. 
+ Used to determine the number and location of exits in a room.
+-'Room' class holds information regarding the exits, room type.
+-'WorldGenerator' class that handles the level generation. Contains all data regarding
+ the algorithm and the algorithm implementation itself.
+
+ 
+>>>>>Build 2<<<<<
+>>UI
+-Added Canvas - buttons and input fields to modify various values for the algorithm. This helps
+ speed up testing by not having to restart the program/restart in editor. But it also serves as 
+ an example how the values that can be modified affect the algorithm and the result.
+-'CanvasEvents' class to hold all of the functions that are called from certain canvas events.
+--Functions call the referenced DungeonGenerator objects World Generation Script to invoke
+  the levels' reset/update functions(update seed/room number/additional room number values 
+  call update and then reset so a new level is generated with the modified values).
+
+
+>>>>>Build 3<<<<<
+>>CORE
+-Slight improvement to collision detection but still not fully operational. Attempted using Box/Sphere
+ colliders in place of Mesh Colliders. This however did not produce any results as the function
+ OnCollisionEnter detected collisions after the algorithm has finished which could not be used 
+ during the generation. 
+-Added 'RoomExit' class that keeps track of the state of each of the exits in a room - closed/open.
+ And also contains functions to change the state of the exits.
+-Updated the 'Room' class to handle interactions with the 'RoomExit' class and to keep a list 
+ of all the exits which is used to check the state of the exits in the room.
+-Added 'ConnectionRules' class to be used in setting up the connection rules between the room types.
+
+
+>>>>>Build 4<<<<<
+>>CORE
+-Added class 'FileLogger' for writing to a file (debug log for error isolation and test result verification).
+>>UI
+-Updated canvas - added Quit button and modified the rest of the canvas components' positions/sizes.
+-Added survey for collision testing.
+
+
+>>>>>Build 5<<<<<
+>>CORE
+-Collision checks now operational - by using the colliders created by Unity as a position reference
+ in world space, an OverlapBox/Sphere (this is based on the components' collider) is used to detect
+ if there are any colliders in the area. The center point and extent is calculated using the colliders
+ already mentioned.
+-Added additional comments to improve readability.
+-Added tags('RoomInstance','Room','Collision') - with tags it is easy to find all objects with a specific tag
+ using GameObject.FindGameObjectsWithTag. This helps in retrieving the created rooms, rooms that need to be deleted(their tag
+ gets changed after a collision has been detected).
+-Added backtracking to finish Single Path generation - backtracking uses the tagging system to get all the
+ instanced rooms and go through them starting with the last one. This way when the path reaches a dead-end
+ it does not try to expand the starting room but one of the last created rooms.
+--There is a second backtracking function which takes 2 parameters and is used when trying to add the 
+  exit room. This is due to the fact that the exit room and the room it is trying to connect to 
+  need to be compatible(exit room must have the other room's type in its' connection rules).
+-Added layers('RoomInstances'/'Collisions') to be used for collision detection. => Check for collisions
+ in the 'RoomInstnaces' layer ignores detections in other layers.
+>>UI
+-Removed survey - useless after collision checks were up and running correctly.
+
+
+>>>>>Build 6<<<<<
+>>CORE
+-Implemented full generation algorithm.
+--Main path material color set to green to be clearly visible after generation.
+-Updated the'Room' class with an enum for the user to choose a specific type of collider for each of the rooms.
+ This information is then retrieved and used to add that type of collider to the room. There is an 'Any' option for the user,
+ which defaults to a BoxCollider(might be changed to a Mesh Collider in the future).
+-Added a class derived from StandaloneInputModule to prevent the user from being able to interact with the canvas
+ using the keyboard as it kept focus in some of the input fields and made it so the dungeon reset.
+ without the user entering a new value, but simply from the user trying to explore the level using WASD keys.
+
+ 
+>>>>>Build 7<<<<<
+>>CORE
+-Implemented SetupExitRoom - attempts to add the specified ExitRoom to the last room that was created
+ and matches the connection rules of the exitRoom. If not, it waits until the Expansion function is called
+ and attempts to add itself after there are several exits available. This way it does not add itself to the
+ first room that was added as an expansion and does not result in a complete dead-end.(no other exits to expand)
+-Added debug mode flag to write to the file important information regarding the state of the algorithm functions. (when set to TRUE)
+-Improved seed mechanism by adding an additional seed that is modified every time it is used. It is reset to initial value on algorithm restart.
+-Small optimisations for the algorithm:
+--Added functions for destroying the colliders/rigid bodies of the instanced rooms as to reduce components that are active
+  while the player explores the level(should be a performance boost - need to research).
+-Updated comments for all classes.
+
+
+>>>>>Build 8<<<<<
+>>CORE
+-Fixed DetectCollision to get the layer itself and not the mask -> replaced GetMask() with NameToLayer("LayerName").
+--Added code for performing a collision check for Capsule and Mesh colliders as those cases were not handled before. The mesh collider check
+  uses a dynamically added box collider to get a rough estimate for the dimensions of the room. The box collider is destroyed afterwards.
+-Added additional comments for the variables and fields. Also added a few tool tips to help explain variables that are exposed in the editor.
+-Updated function names in the 'WorldGenerator' class.
+-Created class 'WorldGenerator_Noise' for the start of the implementation using Noise algorithms.
+>>UI
+-Updated canvas event functions to check if the necessary components are present and active before executing any of the functions.
+-Updated function names in the 'CanvasEvents' class.
+-Added limits to the digits that the user can enter into the input field boxes. Also, added checks that those values do not exceed 
+  the maximum values that are set in the WorldGenerator class.
+
+
+>>>>>Build 9<<<<<
+>>CORE
+-Reverted to using GetMask() for Collision check as the function requires the mask layer itself and not the Id.
+-Created a new class 'RandomItem' for the random functions - Retrieving random item from array, keeping track of the second seed.
+-Generating/Destroying Rigid bodies and Colliders functions were moved to the 'Room' class to be called when necessary.
+-'MatchExits' and 'CalculateAzimuth' functions were moved into the 'RoomConnector' class.
+
+
+>>>>>Build 10<<<<<
+>>CORE
+-Un-derived 'RandomItem' from the MonoBehaviour class as this is not an Unity Script(won't make use of Awake/Start/Update etc.).
+-Removed the call for the Rigid Body Setup function from the 'Room' class as they are not needed for the algorithm to work.
+--Modified the affected classes to call the updated function names.
+--Since RigidBodies are CPU expensive, this change will improve the algorithms efficiency.
+-Changed the 'InitialisingLevel' flag to be set to 'true' on script Awake() to prevent the Canvas events from calling the reset while the 
+ level was generating for the first time. (This is due to the input fields which are updated with the values from the editor at the start,
+ but as they get updated, their respective functions - OnChange()- that deal with their update, also call the dungeon reset function)
+-Implemented Sphere Colliders in the 'RoomConnector' class. This is done in the Awake() function and it also sets the layer to 'RoomConnections'
+ This prevents it from being detected during the collision detection function for the level generation.
+--Added function to destroy collider.
+-Updated 'Room' to also call the DestroyCollider for the exit that is being closed. This will reduce CPU usage and prevent false negatives
+ if by some miracle they can occur.
+-Separated collision check functions into 'CollisionDetection' class.
+-Implemented additional function in the 'FileLogger' class to log errors in a different file regardless of debug mode being on/off.
+--RunAlgorithm is now in a try/catch statement which writes the exception into the error file.
+-Implemented a single function 'GenerateRoom()' that generates a new room and adds it to the level - returning true. If there is a collision and 
+ it has been unsuccessful in adding a new room, it returns false. The function takes a bool parameter to distinguish which room it expands from. If the argument is True,
+ then the algorithm was called for the Single Path creation and the room that will be expanded will be the most recently created one, that has an active exit.
+ Otherwise, if the argument is False, the room that will be expanded is chosen at random every time the function is called. The room does not change if
+ there has been a collision. In the event of a collision, the algorithm now attempts to change the room 3 times that is being added for both SP & Expansion. Also, it does
+ not change the exit it is trying to expand from. This way, if an exit must be closed, it will not be closed prematurely.
+--Both SinglePath and Expansion functions use the described above function.
+--At the end of the function, there is a collision check for the exits of the new room to see if its exits are next to another room's exit.
+  If loops are allowed, those two exits are closed off and left connected. Otherwise, the new room is destroyed.
+>>UI
+-Added a toggle button to allow for setting whether or not to allow loops.
+
+
+>>>>>Build 11<<<<<
+>>CORE
+-Fixed a bug where the algorithm was checking if the current room being expanded would be a dead end instead of the new room, resulting in 
+ pre-mature exit closure. Also, increased the minimum number of exits that must be available during level expansion. Otherwise, the room
+ that is currently being added is replaced with a room that has more exits.
+-Modified 'RandomItem' to only work with 1 seed parameter instead of changing the initial state every time it's used. Also added function to update
+ the seed before the algorithm is ran with a new seed.
+-Modified 'GenerateRoom()' function to return int instead of bool, to better indicate the state it is returning - success, failure due to collision,
+ failure due to no more exits available. If there is a collision and it has been unsuccessful in adding a new room, it returns 0. In the event that 
+ there are no more active exits - it returns -1. This is to distinguish from when the function fails due to a collision.
+--Switches have been added to the affected functions to deal with the return type of the GenerateRoom function.
+-Implemented better camera functionality, similar to the editor's camera script.
+-All classes that are needed for the generator to work have been added to the component menu.
+>>UI
+-Added a Randomize button to generate random parameters and run the algorithm with them.
+-Level doesn't reset immediately after entering new parameters. It now waits for the press of the reset button.
+-Changed to disable the ability to interact with the UI gameObjects instead of disabling the objects themselves,
+ while the level is generating.
+-Changed the colour of the UI elements to turn RED when interactions are disabled.
+-Added a raw image to show how to use the new camera.
+
+
+>>>>>Build 12<<<<<
+>>CORE
+-Renamed 'Room' room type to 'Hall' to be more clear.
+-Added 'Radius' for Sphere Colliders and 'Height' for Box Colliders so the user can specify a certain radius/height which the colliders to use.
+ The Sphere Collider no longer has its center set to 0,0,0 but instead uses the center that Unity has generated.
+ This prevents overlapping if Unity sets a bigger radius than necessary and also prevents different levels being too close to each other.
+-'SetupExitRoom' function is now also called after the level expansion has finished. It is only called, if the exit room hasn't been set up yet,
+ which could be the case when the dungeon is small and the count of the available exits never exceeds 3 (the number of available exits required
+ for the 'SetupExitRoom' function to be called during level expansion, so as not to cause a dead end if the other exits happen to 
+ collide with other rooms).
+-Room GameObjects are now Prefabs and referenced in the script. Room GameObjects have been deleted from the scene.
+-NoiseGenerator now generates a 2D array with random values between 0.0 and 1.0. This will be used as a start for all noise Algorithms.
+>>UI
+-Removed the variables that were used to check if a parameter's value has been changed before calling the Reset Level function, as the user 
+ is now required to click on the Reset button for the reset function to be called.
+-The mouse cursor is now hidden while the camera is moving.
+-Added summary comments to functions that were added in Build 11.
+
+
+>>>>>Build 13<<<<<
+>>CORE
+-Added function 'CloseOffPaths' which uses a room type as a parameter and adds a small close off room to each of the active exits. The close off room is specified by the user,
+ and is intended to prevent the player from exploring a corridor that does not lead anywhere. This is the case, when the closing room is colliding with another room.
+--Setup options are displayed in Editor only.
+--Function picks a 'close-off' room from an array.
+---TESTING: Fixed a bug where the function would close off a path incorrectly without adding the new room or replacing the old room with the new one.
+-Added an enum to the RoomExit class to keep track of whether the exit is open/closed/closed due to a collision.
+-Updated the affected functions which use an optional parameter to specify that the exit was closed due to a collision.
+-Added option to replace rooms with 2 exits - 1 connected, 1 closed due to collision - with a close-off room (e.g. corridors that are connected only on one side and cannot be connected on the other are replaced)
+-'RoomExit' functionality has been extended. It now stores information about 2 exits - the exit it is keeping track of, whether it is open or closed, and the exit it is connected to, if there is one.
+ This helps with finding out which rooms are connected to a specific room allowing for those connections and rooms to be altered.
+-Added a bool variable for debugging to render the main path green as opposed to it always rendering the main path green. This variable is exposed in the editor under 'Debugging'.
+-Added a center variable that can be used when setting up the collider for each of the rooms. This is for capsule colliders when their center might not always be where the engine calculates it.
+-Added comments to new functions.
+>>PREFABS
+-Changed connector rotation on HallTwo as it was causing undetectable collisions.
+>>UI
+-Changed 'RandomizeParameters' to use System.Random instead of the engine's Random class to guarantee that the random sequence of parameters are different on each press of the button.
+
+
+>>>>>Build 14<<<<<
+>>CORE
+-The algorithm has been updated to take into consideration the scale of the models that are being used. Mostly an issue with the physics as a different scale from (1,1,1)
+ results in a physics box that is either too small or too large and incorrectly registers collisions. 
+-New class 'Fragment' implemented. The class defines fragments or pieces of the rooms that need to be put in - such as walls or doors. It uses an enum to differentiate between the different types of fragments.
+ These fragments are created and positioned at the location of the room exits after the level is generated.
+-The algorithm class 'RoomBasedGenerator' now has a function called 'AddFragmentsToLevel' which fills in those gaps that were left for doors/walls. It takes a random fragment designated as 'Door' if the gap it is trying to fill
+ is a 'Connected' exit. Otherwise, it selects a random 'Wall' fragment to place at the exit.
+-Renamed 'SinglePath()' to 'GenerateMainPath()'.
+-Functions that are used by the algorithm but are not part of the main function (room generations/fragments/close off) have been moved into a separate class - 'GeneratorSupportFunctions'.
+-Added 3 new classes: 'DungeonObject', 'DungeonObjectPlacement' and 'DungeonObjectSpawner'. These classes are responsible for the spawning of objects through the level. The placement class is used to specify where in the 
+ room an object can be placed and it's type. The Spawner classes uses the provided objects to spawn them based on their probability of being spawned that is set by the user in the Editor (1-100 probability).
+-Fixed the fragment spawn function to only spawn one 'Fragment' object per 2 connected exits.
+-The 'CloseOffPaths' function no longer replaces a room. This is due to the fact that the fragments function simply closes that room off regardless.
+-Added a constructor without parameters in the 'RandomItem' class which creates an instance of the System.Random class. It can be accessed via the 'GetSystemRandom' function. This is used when the random sequence
+ needs to be different every time.
+-Added additional flags to the Editor to help debugging.
+-Removed some functions that are never used.
+-Added comments to the new classes and updated old comments in the rest of the classes.
+-Added a new class 'ManualCollisionMesh' - essentially provides an alternative when setting up the player collision. Every object that has this script attached should also have
+ a collider attached which should be aligned as where a collision needs to occur (walls/floors/etc.). Easier to set up the collision without having a collision mesh, as the colliders
+ are attached to empty GameObject along with the script - the empty GameObject in turn is a child of a room.
+-Every 'DungeonObject' now has a chance to spawn parameter instead of the chance of an object type to spawn being set in the 'DungeonObjectSpawner' script.
+-Fixed issue with SphereCollider setup where it wasn't using the center vector set by the user.
+-Added a priority flag to the 'RoomConnector's. If the flag is true, a fragment will be spawned on top of that exit, instead of the exit the algorithm is looking at currently.
+-Added parameters to deal with pivot point offset in the 'Fragment' script. This way it avoids changing the pivot point in the model itself.
+-Added classes 'Container' and 'ContainerCover' to deal with containers in the level that can be interacted with. (simple solution)
+-Expanded functionality of 'DungeonObjectPlacement' by adding a bool flag and a 'RoomConnector' reference, which checks if a specific exit is open before considering
+ placing a container at the specified location. This is for corridors/junctions which may have several dead-ends. So if they are connected, a container cannot spawn there.
+ If they have been closed for any other reason, a container has a chance of spawning there.
+-Fixed a bug where rooms would connect to collided rooms and fragment doorway would spawn incorrectly.
+-Added a check when spawning the exit room it does not connect it to the initial room.
+--Rewrote base logic for exit room setup. Instead of destroying the room while trying to fit it somewhere, it is now only destroyed if there is nowhere else left to check to connect it.
+  This is quicker and more efficient as it does not Instantiate a new room object every time there is a collision.
+>>PREFABS
+-New models have been added and set up as Prefabs, including several objectPlacements to test the object spawner functions.
+-Updated spawn chance of each of the containers to showcase them working.
+>>UI
+-'RandomizeParameters' now uses the 'GetSystemRandom' instead of accessing the library itself.
+
+
+>>>>>Build 15<<<<<
+>>CORE
+-Deleted Standard Assets.
+-Removed player game objects from scene.
+-Removed the algorithms dependability on the presence of a canvas object. Canvas is now optional through the Debugging section of the system.
+-Added comments to functions.
+
+
+
+================= Side Notes =================
+=--- AWAKE/START/UPDATE ---=
+-Rooms that have collided get destroyed when the Update event occurs as they don't get destroyed for some reason if attempting to destroy them
+ during the algorithms execution.  But it could be due to the fact that the algorithm is run from the Start() function 
+ and the Update() waits for it to finish. https://docs.unity3d.com/Manual/ExecutionOrder.html
+ 
+ 
+ =--- COLLISION --=
+-Performance wise: Sphere Collider > Box Collider > Capsule Collider > Mesh Collider.
+--Sphere Collider - check only in radius, rotation doesn't matter...
+--Box Collider - check inside box (the intersection), rotation is considered as well hence the more CPU usage
+--Capsule Collider - 2 Sphere colliders and their distance vector
+--Mesh Collider - most expensive
+==>Sphere colliders for rooms like corridors, will detect false positives hence a Box collider is more appropriate despite being more CPU intensive.
+   Sphere colliders, however, are perfect for the room exit points.
+-Collision Matrix changed to improve performance.
+
+
+=--- TAGS AND LAYERS ---=
+-Rooms that are generated during the algorithm are added to their own Layer. This is because when checking for collision, only this layer needs to be checked for collision,
+ and all others can be ignored. This makes it easier to determine whether there is a collision or not.
+--Additionally, every object is tagged in order to be easily found in the scene.
+====================================================================
